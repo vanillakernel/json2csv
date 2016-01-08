@@ -3,26 +3,38 @@
 import json
 
 
+# The first time this is run, records will be initialized as an empty array.
+# As it traverses each line, it accumulates records. When done, it returns them.
+
+def unpack_json(json_line, records=[]):
+    if (isinstance(json_line,list)):
+	for item in json_line:
+	    unpack_json(item)
+    
+    if (isinstance(json_line,dict)):
+	for key, value in  json_line.iteritems():
+	    if (key == 'DeviceId'):
+		device_id = value   
+	    if (key == 'Reports'): 
+		# Add the device id and the cell id to records.
+		# This will be important in the new flattened schema.
+		for report in json_line[key]:
+		    report['c_id']  = report['Cell']['CellId']
+		    report['device_id']  = device_id
+		    records.append(report)
+	    if (isinstance(value,dict)):
+		for sub_key in json_line[key].keys():
+		    unpack_json(value)
+	    if (isinstance(value,list)):
+		for item in json_line[key]:
+		    unpack_json(value)
+    return records    
+    
+
 f = open('../ia_coverage_sample.json', 'r')
 parsed_data = []
-device_id = None
-cell_id = None
-for line in f.readlines():
+for line in f.readlines(): # This will start from the bottom of the input file.
     parsed_data.append(json.loads(line))
-for key, value in  parsed_data[1].iteritems():
-    print "%s \n " % key
-    if (key == 'DeviceId'):
-	device_id =value
-    if (isinstance(parsed_data[1][key],dict)):
-        for sub_key in parsed_data[1][key].keys():
-		print "\t %s" % sub_key  
-for key in  parsed_data[1]['Reports'][0].keys():
-    parsed_data[1]['Reports'][0]['device_id'] = device_id
-    print "\t %s " % key
-    if key == 'Cell':
-	for key in  parsed_data[1]['Reports'][0]['Cell'].keys():
-	    cell_id = parsed_data[1]['Reports'][0]['Cell']['CellId']
-	    parsed_data[1]['Reports'][0]['c_id'] = cell_id
-	    print "\t\t %s " % key
-print parsed_data[1]
-print parsed_data[1]['Reports'][0]
+records = unpack_json(parsed_data[0])
+for record in records:
+    print record
