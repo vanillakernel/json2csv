@@ -24,7 +24,7 @@ def unpack_json(json_lines, reports=[], cells=[], device_details=[]):
     return (reports,cells,device_details)
     
 def store_cells(cells):
-    unique_cells = {v['CellId']:v for v in cells}.values() # uniquify them
+    unique_cells = {v['CellId']:v for v in cells if v != 0}.values() # uniquify them
     f = open('Cells.csv', 'w')
     #f.write(unique_cells[0].keys()) #Get the csv headers
     i = 0
