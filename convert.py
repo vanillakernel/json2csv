@@ -3,6 +3,7 @@
 import json
 import numpy as np
 import csv
+
 # The first time this is run, records will be initialized as an empty array.
 # As it traverses each line, it accumulates records. When done, it returns them.
 
@@ -23,9 +24,9 @@ def unpack_json(json_lines, reports=[], cells=[], device_details=[]):
     reports = np.hstack(reports[:])
     return (reports,cells,device_details)
     
-def store_cells(cells):
+def store_cells(cells, basename, outpath):
     unique_cells = {v['CellId']:v for v in cells if v != 0}.values() # uniquify them
-    f = open('Cells.csv', 'w')
+    f = open(path.join(outpath, basename + '_cells.csv'), 'w')
     #f.write(unique_cells[0].keys()) #Get the csv headers
     i = 0
     try:
@@ -44,9 +45,9 @@ def store_cells(cells):
 	    f.close()
     print "Wrote %r unique cells to Cells.json" % len(unique_cells)	
  
-def store_devices(device_details):
+def store_devices(device_details, basename, outpath):
     unique_devices = {v['device_id']:v for v in device_details}.values()#uniquem
-    f = open('Devices.csv', 'w')
+    f = open(path.join(outpath, basename + '_devices.csv'), 'w')
     #f.write(unique_cells[0].keys()) #Get the csv headers
     i = 0
     try:
@@ -66,8 +67,8 @@ def store_devices(device_details):
  
     print "I would store %r unique devices." % len(unique_devices)	
 
-def store_reports(reports):
-    f = open('Reports.csv', 'w')
+def store_reports(reports, basename, outpath):
+    f = open(path.join(outpath, basename + '_reports.csv'), 'w')
     #f.write(unique_cells[0].keys()) #Get the csv headers
     i = 0
     try:
@@ -88,17 +89,29 @@ def store_reports(reports):
     print "I would store %r reports." % len(reports)	
 
 
-def main():
-    f = open('./ia_coverage_sample.json', 'r')
+def main(filename, outpath):
+    f = open(filename, 'r')
+    basename = path.basename(path.splitext(filename)[0])
     parsed_data = []
     loads = json.loads
     parsed_data = np.array([loads(line) for line in f])
     reports, cells, devices = unpack_json(parsed_data)
-    store_reports(reports)
-    store_cells(cells)
-    store_devices(devices)
+    store_reports(reports, basename, outpath)
+    store_cells(cells, basename, outpath)
+    store_devices(devices, basename, outpath)
     #for report in reports:
 #	print report
 
 if __name__ == "__main__":
-            main()
+    from optparse import OptionParser
+    from os import path, listdir
+    parser = OptionParser()
+    parser.add_option('-f', '--filename')
+    parser.add_option('-d', '--dirname')
+    parser.add_option('-o', '--outpath')
+    options, args = parser.parse_args()
+    if options.dirname:
+        for file in listdir(path.abspath(options.dirname)):
+            main(path.abspath(path.join(options.dirname, file)),path.abspath(options.outpath))
+    else:
+        main(path.abspath(options.filename), path.abspath(options.outpath))
